@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Quote & Estimate Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Refined Vibrant Theme Palette */
+      --bg-dark: #0b0f19;           /* Rich Obsidian Base */
+      --card-bg: #131b2e;           /* Deep Blue Surface */
+      --panel-bg: #0f172a;          /* Slate Dark Panel */
+      
+      --primary: #4f46e5;           /* Rich Royal Indigo */
+      --primary-hover: #4338ca;     
+      --primary-glow: rgba(79, 70, 229, 0.35);
+      
+      --accent-cyan: #06b6d4;        /* Vibrant Ocean Cyan */
+      --accent-cyan-glow: rgba(6, 182, 212, 0.25);
+      
+      --accent-emerald: #10b981;     /* Crisp Emerald */
+      --accent-emerald-bg: rgba(16, 185, 129, 0.15);
+      --accent-rose: #f43f5e;        /* Clean Crimson Rose */
+
+      --text-main: #f8fafc;         /* Crisp White */
+      --text-muted: #94a3b8;        /* Soft Slate Gray */
+      --border: #1e293b;            /* Border Tint */
+      --input-bg: #090d16;
+
+      --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top right, #1e1b4b 0%, #0b0f19 60%, #070a12 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .app-card {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 960px;
+      border-radius: 24px;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 28px 36px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, rgba(79, 70, 229, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(6, 182, 212, 0.12);
+      color: #67e8f9;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    /* Split Screen Layout Grid */
+    .app-body {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 0;
+    }
+
+    @media (max-width: 768px) {
+      .app-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Side: Form */
+    .form-container {
+      padding: 36px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background-color: var(--card-bg);
+    }
+
+    @media (max-width: 768px) {
+      .form-container {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    input, select {
+      width: 100%;
+      height: 46px;
+      padding: 0 14px;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      font-size: 0.9375rem;
+      color: var(--text-main);
+      background-color: var(--input-bg);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .has-prefix input {
+      padding-left: 30px;
+    }
+
+    input::placeholder {
+      color: #475569;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 4px var(--accent-cyan-glow);
+    }
+
+    /* Centered Button Wrapper */
+    .btn-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    button.btn-generate {
+      height: 48px;
+      padding: 0 32px;
+      width: 100%;
+      max-width: 280px;
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.25 ease;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+
+    button.btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-cyan-glow);
+    }
+
+    /* Right Side: Output Panel */
+    .output-panel {
+      background-color: var(--panel-bg);
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 24px;
+    }
+
+    .output-header h2 {
+      font-size: 0.875rem;
+      font-weight: 800;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-status {
+      background-color: #1e293b;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .badge-status.active {
+      background-color: var(--accent-emerald-bg);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .placeholder-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 0;
+      color: var(--text-muted);
+    }
+
+    .placeholder-state svg {
+      margin-bottom: 12px;
+      color: var(--accent-cyan);
+      opacity: 0.7;
+    }
+
+    .summary-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out forwards;
+    }
+
+    .summary-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .summary-line strong {
+      color: var(--text-main);
+      font-weight: 600;
+      text-align: right;
+      max-width: 180px;
+      word-break: break-word;
+    }
+
+    .total-box {
+      margin-top: 24px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .total-box span {
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .total-amount {
+      font-size: 2.125rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(6, 182, 212, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-card">
+  <!-- Header Section -->
+  <div class="header">
+    <div class="header-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Estimator Tool
+    </div>
+    <h1>Project Quote Generator</h1>
+  </div>
+
+  <!-- App Layout -->
+  <div class="app-body">
+    
+    <!-- Left Column: Input Form -->
+    <div class="form-container">
+      <form id="quoteForm" onsubmit="event.preventDefault(); generateQuote();">
+        
+        <div class="field-group" style="margin-bottom: 16px;">
+          <label for="projectName">Project Name or Scope</label>
+          <input type="text" id="projectName" placeholder="e.g., Enterprise Web Application" required>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 16px;">
+          <div class="field-group">
+            <label for="estimatedHours">Estimated Hours</label>
+            <input type="number" id="estimatedHours" min="1" placeholder="e.g., 40" required>
+          </div>
+
+          <div class="field-group">
+            <label for="hourlyRate">Hourly Rate ($)</label>
+            <div class="input-wrapper has-prefix">
+              <span class="input-prefix">$</span>
+              <input type="number" id="hourlyRate" min="1" step="0.01" placeholder="85.00" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 20px;">
+          <div class="field-group">
+            <label for="complexity">Scope Buffer / Risk</label>
+            <select id="complexity" required>
+              <option value="" disabled selected hidden>Select risk buffer</option>
+              <option value="0">Standard (0% buffer)</option>
+              <option value="0.15">Medium (+15% buffer)</option>
+              <option value="0.30">High (+30% buffer)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="discount">Discount Amount ($)</label>
+            <div class="input-wrapper has-prefix">
+              <span class="input-prefix">$</span>
+              <input type="number" id="discount" min="0" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-wrapper">
+          <button type="submit" class="btn-generate">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+            Calculate Quote
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right Column: Output Display -->
+    <div class="output-panel">
+      <div>
+        <div class="output-header">
+          <h2>Quote Summary</h2>
+          <span id="statusBadge" class="badge-status">Draft</span>
+        </div>
+
+        <div id="placeholderState" class="placeholder-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          <p style="font-size: 0.85rem;">Enter project information to calculate the final price estimate.</p>
+        </div>
+
+        <div id="summaryContent" class="summary-content">
+          <div class="summary-line">
+            <span>Project</span>
+            <strong id="outProject"></strong>
+          </div>
+          <div class="summary-line">
+            <span>Base Labor</span>
+            <strong id="outBase"></strong>
+          </div>
+          <div class="summary-line">
+            <span>Risk Margin Buffer</span>
+            <strong id="outBuffer"></strong>
+          </div>
+          <div class="summary-line">
+            <span>Applied Discount</span>
+            <strong id="outDiscount" style="color: var(--accent-rose);"></strong>
+          </div>
+
+          <div class="total-box">
+            <span>Estimated Total</span>
+            <div id="outTotal" class="total-amount">$0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function generateQuote() {
+    const projectName = document.getElementById('projectName').value.trim();
+    const hours = parseFloat(document.getElementById('estimatedHours').value);
+    const rate = parseFloat(document.getElementById('hourlyRate').value);
+    const complexityFactor = parseFloat(document.getElementById('complexity').value);
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+
+    if (!projectName || isNaN(hours) || isNaN(rate) || isNaN(complexityFactor)) {
+      return;
+    }
+
+    const baseCost = hours * rate;
+    const bufferCost = baseCost * complexityFactor;
+    const subtotal = baseCost + bufferCost;
+    const totalCost = Math.max(0, subtotal - discount);
+
+    const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+
+    document.getElementById('outProject').textContent = projectName;
+    document.getElementById('outBase').textContent = formatCurrency(baseCost);
+    document.getElementById('outBuffer').textContent = formatCurrency(bufferCost);
+    document.getElementById('outDiscount').textContent = discount > 0 ? `-${formatCurrency(discount)}` : '$0.00';
+    document.getElementById('outTotal').textContent = formatCurrency(totalCost);
+
+    document.getElementById('placeholderState').style.display = 'none';
+    document.getElementById('summaryContent').classList.add('active');
+    
+    const badge = document.getElementById('statusBadge');
+    badge.textContent = 'Ready';
+    badge.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
