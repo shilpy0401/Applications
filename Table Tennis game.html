@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table Tennis Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #121814;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 12px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      color: #e2ebd8;
+    }
+    
+    /* Top Control Panel */
+    .control-panel {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      background-color: #1c2820;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #2f4236;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+    }
+    select, input[type="number"] {
+      background-color: #0f1712;
+      color: #fff;
+      border: 1px solid #3c5444;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+
+    .game-container {
+      position: relative;
+      border: 12px solid #0b120d; /* Dark surrounding arena border */
+      border-radius: 6px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
+    }
+    canvas {
+      display: block;
+    }
+
+    /* Scoreboard at Bottom */
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      width: 800px;
+      background-color: #1c2820;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      border: 1px solid #2f4236;
+    }
+    .score-card {
+      text-align: center;
+    }
+    .score-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #9cb5a3;
+    }
+    .score-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+    .player-score { color: #f5f5dc; }
+    .computer-score { color: #f5f5dc; }
+
+    .controls-info {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: #8fa896;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TABLE TENNIS</h1>
+
+  <!-- Top Controls -->
+  <div class="control-panel">
+    <div class="control-group">
+      <label for="difficulty">Difficulty:</label>
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="targetScore">Points to Win:</label>
+      <input type="number" id="targetScore" value="7" min="1" max="99">
+    </div>
+  </div>
+
+  <div class="game-container">
+    <canvas id="pongCanvas" width="800" height="450"></canvas>
+  </div>
+
+  <!-- Scoreboard at Bottom -->
+  <div class="scoreboard">
+    <div class="score-card">
+      <div class="score-label">Player Score</div>
+      <div class="score-value player-score" id="playerScoreDisplay">0</div>
+    </div>
+    <div class="score-card">
+      <div class="score-label">Target Score</div>
+      <div class="score-value" id="targetScoreDisplay" style="color: #ffca28;">7</div>
+    </div>
+    <div class="score-card">
+      <div class="score-label">Computer Score</div>
+      <div class="score-value computer-score" id="computerScoreDisplay">0</div>
+    </div>
+  </div>
+
+  <p class="controls-info">Use <strong>UP</strong> and <strong>DOWN</strong> arrow keys to move your paddle.</p>
+
+  <script>
+    const canvas = document.getElementById('pongCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const difficultySelect = document.getElementById('difficulty');
+    const targetScoreInput = document.getElementById('targetScore');
+    const playerScoreDisplay = document.getElementById('playerScoreDisplay');
+    const computerScoreDisplay = document.getElementById('computerScoreDisplay');
+    const targetScoreDisplay = document.getElementById('targetScoreDisplay');
+
+    // Game constants
+    const PADDLE_WIDTH = 12;
+    const PADDLE_HEIGHT = 90;
+    const BALL_SIZE = 12;
+    const PLAYER_X = 25;
+    const COMPUTER_X = canvas.width - 25 - PADDLE_WIDTH;
+
+    // AI Difficulty Speeds
+    const DIFFICULTY_SPEEDS = {
+      easy: 3.2,
+      medium: 4.8,
+      hard: 6.8
+    };
+
+    // Game variables
+    let playerY = (canvas.height - PADDLE_HEIGHT) / 2;
+    let computerY = (canvas.height - PADDLE_HEIGHT) / 2;
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 6;
+    let ballSpeedY = 3;
+    
+    let playerScore = 0;
+    let computerScore = 0;
+    let targetScore = parseInt(targetScoreInput.value, 10) || 7;
+    let computerSpeed = DIFFICULTY_SPEEDS[difficultySelect.value];
+    let gameOver = false;
+    let winnerText = "";
+
+    const keys = {
+      ArrowUp: false,
+      ArrowDown: false
+    };
+
+    const paddleSpeed = 7;
+
+    // Control Listeners
+    difficultySelect.addEventListener('change', (e) => {
+      computerSpeed = DIFFICULTY_SPEEDS[e.target.value];
+    });
+
+    targetScoreInput.addEventListener('change', (e) => {
+      let val = parseInt(e.target.value, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      targetScore = val;
+      targetScoreInput.value = val;
+      targetScoreDisplay.textContent = val;
+      checkWinner();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        keys[e.key] = true;
+        e.preventDefault();
+      }
+      if (gameOver && e.code === 'Space') {
+        resetGame();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        keys[e.key] = false;
+      }
+    });
+
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballSpeedX = -ballSpeedX > 0 ? 6 : -6;
+      ballSpeedY = (Math.random() - 0.5) * 6;
+    }
+
+    function resetGame() {
+      playerScore = 0;
+      computerScore = 0;
+      updateScoreUI();
+      gameOver = false;
+      winnerText = "";
+      resetBall();
+    }
+
+    function updateScoreUI() {
+      playerScoreDisplay.textContent = playerScore;
+      computerScoreDisplay.textContent = computerScore;
+    }
+
+    function checkWinner() {
+      if (playerScore >= targetScore) {
+        gameOver = true;
+        winnerText = "YOU WIN!";
+      } else if (computerScore >= targetScore) {
+        gameOver = true;
+        winnerText = "COMPUTER WINS!";
+      }
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      // Player Movement
+      if (keys.ArrowUp && playerY > 0) {
+        playerY -= paddleSpeed;
+      }
+      if (keys.ArrowDown && playerY < canvas.height - PADDLE_HEIGHT) {
+        playerY += paddleSpeed;
+      }
+
+      // Computer AI Movement
+      const computerCenter = computerY + PADDLE_HEIGHT / 2;
+      if (computerCenter < ballY - 15 && computerY < canvas.height - PADDLE_HEIGHT) {
+        computerY += computerSpeed;
+      } else if (computerCenter > ballY + 15 && computerY > 0) {
+        computerY -= computerSpeed;
+      }
+
+      // Ball Movement
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      // Wall Collisions
+      if (ballY - BALL_SIZE / 2 <= 0 || ballY + BALL_SIZE / 2 >= canvas.height) {
+        ballSpeedY = -ballSpeedY;
+      }
+
+      // Player Paddle Collision
+      if (
+        ballX - BALL_SIZE / 2 <= PLAYER_X + PADDLE_WIDTH &&
+        ballX + BALL_SIZE / 2 >= PLAYER_X &&
+        ballY >= playerY &&
+        ballY <= playerY + PADDLE_HEIGHT
+      ) {
+        const collidePoint = (ballY - (playerY + PADDLE_HEIGHT / 2)) / (PADDLE_HEIGHT / 2);
+        const angleRad = (Math.PI / 4) * collidePoint;
+        const speed = Math.hypot(ballSpeedX, ballSpeedY) * 1.05;
+
+        ballSpeedX = speed * Math.cos(angleRad);
+        ballSpeedY = speed * Math.sin(angleRad);
+        ballX = PLAYER_X + PADDLE_WIDTH + BALL_SIZE / 2;
+      }
+
+      // Computer Paddle Collision
+      if (
+        ballX + BALL_SIZE / 2 >= COMPUTER_X &&
+        ballX - BALL_SIZE / 2 <= COMPUTER_X + PADDLE_WIDTH &&
+        ballY >= computerY &&
+        ballY <= computerY + PADDLE_HEIGHT
+      ) {
+        const collidePoint = (ballY - (computerY + PADDLE_HEIGHT / 2)) / (PADDLE_HEIGHT / 2);
+        const angleRad = (Math.PI / 4) * collidePoint;
+        const speed = Math.hypot(ballSpeedX, ballSpeedY) * 1.05;
+
+        ballSpeedX = -speed * Math.cos(angleRad);
+        ballSpeedY = speed * Math.sin(angleRad);
+        ballX = COMPUTER_X - BALL_SIZE / 2;
+      }
+
+      // Scoring
+      if (ballX < 0) {
+        computerScore++;
+        updateScoreUI();
+        checkWinner();
+        if (!gameOver) resetBall();
+      } else if (ballX > canvas.width) {
+        playerScore++;
+        updateScoreUI();
+        checkWinner();
+        if (!gameOver) resetBall();
+      }
+    }
+
+    function drawRealisticTable() {
+      // Base Table Green
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, '#2b6b3e');
+      grad.addColorStop(0.5, '#317a47');
+      grad.addColorStop(1, '#255e36');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Outer White Border Line
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+      // Center White Line
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Realistic Mesh Net
+      const netX = canvas.width / 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 1;
+
+      // Net Mesh Pattern
+      for (let y = 0; y < canvas.height; y += 8) {
+        ctx.beginPath();
+        ctx.moveTo(netX - 5, y);
+        ctx.lineTo(netX + 5, y);
+        ctx.stroke();
+      }
+      for (let x = netX - 5; x <= netX + 5; x += 2.5) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      // Net Posts Top and Bottom
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(netX - 6, -2, 12, 8);
+      ctx.fillRect(netX - 6, canvas.height - 6, 12, 8);
+    }
+
+    function render() {
+      // Draw Table Tennis Court Background
+      drawRealisticTable();
+
+      // Beige Player Paddle with Shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = "#f5e6c8";
+      ctx.fillRect(PLAYER_X, playerY, PADDLE_WIDTH, PADDLE_HEIGHT);
+
+      // Beige Computer Paddle
+      ctx.fillRect(COMPUTER_X, computerY, PADDLE_WIDTH, PADDLE_HEIGHT);
+
+      // White Ball
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, BALL_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Reset Shadow Effects
+      ctx.shadowBlur = 0;
+
+      // Game Over Overlay
+      if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = playerScore >= targetScore ? "#81c784" : "#e57373";
+        ctx.font = "48px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(winnerText, canvas.width / 2, canvas.height / 2 - 20);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "20px sans-serif";
+        ctx.fillText("Press SPACE to Play Again", canvas.width / 2, canvas.height / 2 + 30);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Initialize UI and Game Loop
+    updateScoreUI();
+    gameLoop();
+  </script>
+</body>
+</html>
